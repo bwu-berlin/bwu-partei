@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BWU - Bürgerliche Wirtschaftsunion</title>
+    <style>
+        /* --- GRUNDEINSTELLUNGEN & VARIABLEN --- */
+        :root {
+            --bw-blue: #0E345E; /* Dunkelblau aus dem Logo */
+            --bw-red: #8A151B;  /* Dunkelrot aus dem Logo */
+            --bw-white: #FFFFFF;
+            --bw-black: #1a1a1a;
+            --bg-grey: #f4f4f4;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            cursor: default; /* Standard-Cursor */
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-grey);
+            color: var(--bw-black);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        a {
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        /* --- CANVAS HINTERGRUND (Wirtschafts-Netzwerk) --- */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.15; /* Subtil im Hintergrund */
+            pointer-events: none;
+        }
+
+        /* --- HEADER & NAVIGATION --- */
+        header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            height: 100px;
+            background-color: var(--bw-white);
+            border-bottom: 4px solid var(--bw-blue);
+            z-index: 1000;
+            display: flex;
+            justify-content: center; 
+            align-items: center;
+            padding: 0 2%; 
+            transition: all 0.3s ease;
+        }
+
+        /* --- LINK ANIMATION (Unterstrich) --- */
+        .nav-link {
+            font-size: 1.2rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--bw-blue);
+            transition: all 0.3s ease;
+            position: relative;
+            cursor: pointer;
+            padding: 10px 5px; 
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0; 
+            height: 3px; 
+            bottom: 0;
+            left: 0;
+            background-color: var(--bw-red);
+            transition: width 0.3s ease; 
+        }
+
+        .nav-link:hover::after {
+            width: 100%;
+        }
+
+
+        /* --- RUNDER LOGO CONTAINER --- */
+        .logo-container {
+            height: 140px; 
+            width: 140px;
+            background-color: var(--bw-white);
+            border: 4px solid var(--bw-blue);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transform: translateY(20px);
+            transition: transform 0.3s ease;
+            box-shadow: none; 
+            overflow: hidden;
+            margin: 0 30px; 
+        }
+
+        .logo-container img {
+            width: 90%;
+            height: auto;
+        }
+
+        /* --- ALLGEMEINE SEKTIONEN --- */
+        section {
+            padding: 120px 10%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            border-bottom: 2px solid var(--bw-black);
+        }
+
+        .section-title {
+            font-size: 3rem;
+            text-transform: uppercase;
+            color: var(--bw-blue);
+            margin-bottom: 35px;
+            border-left: 10px solid var(--bw-red);
+            padding-left: 20px;
+            opacity: 0;
+            transform: translateX(-50px);
+            transition: all 0.8s ease;
+        }
+
+        .section-title.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        /* --- SEKTION 1: WER SIND WIR --- */
+        #wer-sind-wir {
+            background-color: var(--bw-white);
+        }
+
+        .about-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+            align-items: stretch; 
+            min-height: 600px;
+        }
+
+        .about-text {
+            font-size: 1.1rem;
+            text-align: justify;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s ease 0.2s;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .about-text.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .about-text strong {
+            color: var(--bw-red);
+        }
+
+        /* --- ZAHNRAD CANVAS CONTAINER --- */
+        .canvas-container {
+            width: 100%;
+            height: 100%; 
+            min-height: 500px; 
+            position: relative;
+            opacity: 0;
+            transform: scale(0.9);
+            transition: all 0.8s ease 0.4s;
+            overflow: hidden; 
+        }
+
+        .canvas-container.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        #gears-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+
+        /* --- SEKTION 2: UNSER PROGRAMM --- */
+        #programm {
+            background-color: var(--bw-white);
+        }
+
+        .program-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr; /* 2 Teile Programm, 1 Teil Video */
+            gap: 40px;
+            align-items: start;
+        }
+
+        .program-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .program-card {
+            background-color: var(--bw-white);
+            border: 3px solid var(--bw-blue);
+            padding: 25px;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: relative;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(50px);
+        }
+
+        .program-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .program-card:hover {
+            background-color: var(--bw-blue);
+            border-color: var(--bw-red);
+            transform: translateY(-10px);
+            box-shadow: 10px 10px 0 var(--bw-red); /* Harter, eckiger Schatten */
+        }
+
+        .program-card:hover h3, 
+        .program-card:hover p {
+            color: var(--bw-white);
+        }
+
+        .program-card:hover .icon svg {
+            fill: var(--bw-white); 
+            transform: scale(1.1);
+        }
+
+        .icon {
+            height: 60px;
+            width: 60px;
+            margin-bottom: 20px;
+        }
+
+        .icon svg {
+            width: 100%;
+            height: 100%;
+            fill: var(--bw-blue);
+            transition: all 0.3s ease;
+        }
+
+        .program-card h3 {
+            font-size: 1.3rem;
+            color: var(--bw-blue);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .program-card p {
+            font-size: 0.95rem;
+            color: var(--bw-black);
+        }
+
+        /* Video Container */
+        .video-wrapper {
+            position: sticky;
+            top: 150px;
+            border: 4px solid var(--bw-blue);
+            background: var(--bw-black);
+            padding: 0;
+            height: 600px; /* Hochformat erzwingen */
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateX(50px);
+            transition: all 0.8s ease 0.5s;
+            box-shadow: -10px 10px 0 var(--bw-red);
+        }
+
+        .video-wrapper.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .video-wrapper video {
+            height: 100%;
+            width: 100%;
+            object-fit: cover; /* Video füllt den Container */
+        }
+
+        /* --- SEKTION 3: KONTAKT --- */
+        #kontakt {
+            background-color: var(--bw-blue);
+            color: var(--bw-white);
+            border-bottom: none;
+            padding-bottom: 100px; 
+        }
+
+        #kontakt .section-title {
+            color: var(--bw-white);
+            border-left-color: var(--bw-white);
+        }
+
+        .contact-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: start; 
+        }
+
+        .contact-form-wrapper {
+            background-color: var(--bw-white);
+            padding: 40px;
+            border: 1px solid var(--bw-white);
+            opacity: 0;
+            transform: scale(0.95);
+            transition: all 0.8s ease;
+        }
+
+        .contact-form-wrapper.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: var(--bw-blue);
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .form-group input, 
+        .form-group textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid var(--bw-blue);
+            background: #f9f9f9;
+            font-size: 1rem;
+            border-radius: 0; /* Eckig */
+            transition: border-color 0.3s;
+            cursor: text;
+        }
+
+        .form-group input:focus, 
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--bw-red);
+            background: #fff;
+        }
+
+        button[type="submit"] {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--bw-blue);
+            color: var(--bw-white);
+            border: none;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+
+        button[type="submit"]:hover {
+            background-color: var(--bw-red);
+        }
+
+        button[type="submit"]:active {
+            transform: translateY(2px);
+        }
+
+        .join-info {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start; 
+        }
+
+        .join-info h2 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: var(--bw-white); 
+            margin-top: 0; 
+        }
+
+        .join-info p {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+
+        .join-benefit {
+            margin-top: 10px;
+            padding: 15px;
+            border-left: 5px solid var(--bw-red);
+            background: rgba(255,255,255,0.1);
+            margin-bottom: 10px;
+        }
+
+        /* --- RESPONSIVE --- */
+        @media (max-width: 900px) {
+            .program-container {
+                grid-template-columns: 1fr;
+            }
+            .video-wrapper {
+                position: relative;
+                top: 0;
+                height: 500px;
+                order: -1; /* Video oben auf Mobile */
+                margin-bottom: 30px;
+            }
+            .about-content {
+                grid-template-columns: 1fr;
+            }
+            /* Zahnrad Container auf Mobile */
+            .canvas-container {
+                height: 400px;
+                order: -1;
+                margin-bottom: 30px;
+            }
+
+            .contact-container {
+                grid-template-columns: 1fr;
+            }
+            header {
+                padding: 0 20px;
+            }
+            .logo-container {
+                 margin: 0 15px;
+            }
+            .nav-link {
+                font-size: 0.8rem; 
+                padding: 10px 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="bg-canvas"></canvas>
+
+    <header>
+        <a href="#wer-sind-wir" class="nav-link">Wer sind wir</a>
+        <div class="logo-container">
+            <img src="Logo-BWU.jpeg" alt="BWU Logo">
+        </div>
+        <a href="#programm" class="nav-link">Unser Programm</a>
+    </header>
+
+    <section id="wer-sind-wir">
+        <h2 class="section-title reveal">Die Partei für Berlin</h2>
+        <div class="about-content">
+            <div class="about-text reveal">
+                <p>
+                    Die <strong>Bürgerliche Wirtschaftsunion (BWU)</strong> ist die Antwort auf den Stillstand in unserer Hauptstadt. Wir sind keine Partei der theoretischen Ideologien, sondern der praktischen Lösungen. Berlin hat enormes Potenzial, das durch Missmanagement und Bürokratie erstickt wird. 
+                </p>
+                <br>
+                <p>
+                    Wir stehen für eine <strong>ideologiefreie Politik</strong>, die sich an Zahlen, Fakten und dem Wohlstand der Bürger orientiert. Wir glauben fest daran, dass eine starke Wirtschaft das Fundament für ein soziales Miteinander ist. Ohne florierende Unternehmen gibt es keine sicheren Arbeitsplätze, und ohne sichere Arbeitsplätze gibt es keinen Wohlstand.
+                </p>
+                <br>
+                <p>
+                    Die BWU kämpft für die Berliner Bürger: Für funktionierende Ämter, saubere Schulen, sichere Straßen und einen öffentlichen Nahverkehr, auf den man sich verlassen kann. Wir bringen den gesunden Menschenverstand zurück in das Abgeordnetenhaus.
+                </p>
+            </div>
+            <div class="canvas-container reveal">
+                 <canvas id="gears-canvas"></canvas>
+            </div>
+        </div>
+    </section>
+
+    <section id="programm">
+        <h2 class="section-title reveal">Unser Programm für Berlin</h2>
+        
+        <div class="program-container">
+            <div class="program-grid">
+                <div class="program-card reveal">
+                    <div class="icon"><svg viewBox="0 0 24 24"><path d="M12,11V8L7,5V11H12M18,13H15L19,5L11,13H14L10,21L18,13M4,21H16V15H4V21Z" /></svg></div>
+                    <h3>Energie-Unabhängigkeit</h3>
+                    <p>Wir fordern den Weiterbetrieb und die Reaktivierung von Kernkraftwerken. Schluss mit teuren Energieimporten aus Frankreich. Für bezahlbaren Strom in Berlin und Unabhängigkeit vom Ausland.</p>
+                </div>
+                <div class="program-card reveal">
+                    <div class="icon"><svg viewBox="0 0 24 24"><path d="M12,3L1,9L12,15L21,9M5,13.18V17.18L12,21L19,17.18V13.18L12,17L5,13.18Z" /></svg></div>
+                    <h3>Bildungsoffensive</h3>
+                    <p>Der Lehrermangel ist eine Katastrophe für unsere Kinder. Wir erhöhen die Lehrerlöhne massiv, um die besten Köpfe nach Berlin zu holen. Bildung ist unsere wichtigste Ressource.</p>
+                </div>
+                <div class="program-card reveal">
+                    <div class="icon"><svg viewBox="0 0 24 24"><path d="M12,2C8,2 4,2.5 4,6V15.5C4,17.43 5.57,19 7.5,19L6,20.5V21H18V20.5L16.5,19C18.43,19 20,17.43 20,15.5V6C20,2.5 16,2 12,2M12,4C16,4 18,4.5 18,6V10H6V6C6,4.5 8,4 12,4M12,13.5C11.17,13.5 10.5,12.83 10.5,12C10.5,11.17 11.17,10.5 12,10.5C12.83,10.5 13.5,11.17 13.5,12C13.5,12.83 12.83,13.5 12,13.5Z" /></svg></div>
+                    <h3>Starker Nahverkehr</h3>
+                    <p>Schluss mit Dauerstreiks! Wir erhöhen die Löhne bei BVG und Deutscher Bahn um 5-10%. Faire Bezahlung sorgt für zuverlässigen Verkehr, damit Berlin mobil bleibt.</p>
+                </div>
+                <div class="program-card reveal">
+                    <div class="icon"><svg viewBox="0 0 24 24"><path d="M4,18L20,18L20,20L4,20M4,6L20,6L18,16L6,16M7,7L8.4,15H11L10.2,7M12.8,7L12,15H15.6L17,7" /></svg></div>
+                    <h3>Smarte Energie</h3>
+                    <p>Jeder neue Bau muss zur Energiezentrale werden. Wir führen eine Solarpflicht für alle neuen Wohnungen, Häuser und Gewerbegebäude ein. Berlin wird zum Kraftwerk.</p>
+                </div>
+                <div class="program-card reveal">
+                    <div class="icon"><svg viewBox="0 0 24 24"><path d="M15,13V15H8V13H15M8,17H12V19H8V17M10,3L2,9V20A2,2 0 0,0 4,22H20A2,2 0 0,0 22,20V9L14,3H10M20,11V14H23V16H20V19L16.5,15L20,11Z" /></svg></div>
+                    <h3>Zuzugsprämie</h3>
+                    <p>Berlin braucht Macher. Wir bieten finanzielle Anreize für Privatpersonen und Firmen, die von Brandenburg nach Berlin ziehen. Wir stärken die Hauptstadtregion.</p>
+                </div>
+            </div>
+
+            <div class="video-wrapper reveal">
+                <video src="Video-BWU.mp4" controls autoplay muted loop playsinline></video>
+            </div>
+        </div>
+    </section>
+
+    <section id="kontakt">
+        <h2 class="section-title reveal">Werde Teil der Bewegung</h2>
+        <div class="contact-container">
+            <div class="contact-form-wrapper reveal">
+                <form action="https://formspree.io/f/xaqnrjar" method="POST">
+                    <div class="form-group">
+                        <label for="name">Ganzer Name</label>
+                        <input type="text" id="name" name="name" required placeholder="Max Mustermann">
+                    </div>
+                    <div class="form-group">
+                        <label for="email">E-Mail Adresse</label>
+                        <input type="email" id="email" name="email" required placeholder="max@beispiel.de">
+                    </div>
+                    <div class="form-group">
+                        <label for="message">Warum möchtest du beitreten?</label>
+                        <textarea id="message" name="message" rows="5" required placeholder="Ich möchte Berlin verändern, weil..."></textarea>
+                    </div>
+                    <button type="submit">Jetzt Mitglied werden</button>
+                </form>
+            </div>
+            
+            <div class="join-info reveal">
+                <h2>Deine Stimme zählt.</h2>
+                <p>Die BWU ist mehr als eine Partei. Wir sind eine Gemeinschaft von Bürgern, die nicht mehr zusehen wollen.</p>
+                
+                <div class="join-benefit">
+                    <strong>Netzwerk:</strong> Triff Unternehmer, Denker und Macher aus Berlin.
+                </div>
+                <div class="join-benefit">
+                    <strong>Einfluss:</strong> Gestalte unser Programm aktiv mit.
+                </div>
+                <div class="join-benefit">
+                    <strong>Zukunft:</strong> Sorge dafür, dass deine Kinder in einem sicheren und wohlhabenden Berlin aufwachsen.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // --- 1. CANVAS ANIMATION (Hintergrund Netzwerk) ---
+        const canvasBg = document.getElementById('bg-canvas');
+        const ctxBg = canvasBg.getContext('2d');
+        let widthBg, heightBg;
+        let particles = [];
+
+        function resizeBg() {
+            widthBg = canvasBg.width = window.innerWidth;
+            heightBg = canvasBg.height = window.innerHeight;
+        }
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * widthBg;
+                this.y = Math.random() * heightBg;
+                this.vx = (Math.random() - 0.5) * 0.5;
+                this.vy = (Math.random() - 0.5) * 0.5;
+                this.size = Math.random() * 3 + 1; 
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                if (this.x < 0 || this.x > widthBg) this.vx *= -1;
+                if (this.y < 0 || this.y > heightBg) this.vy *= -1;
+            }
+            draw() {
+                ctxBg.fillStyle = '#0E345E';
+                ctxBg.fillRect(this.x, this.y, this.size, this.size); 
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < 40; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        function animateCanvasBg() {
+            ctxBg.clearRect(0, 0, widthBg, heightBg);
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
+                particles[i].draw();
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 150) {
+                        ctxBg.strokeStyle = `rgba(14, 52, 94, ${1 - dist/150})`;
+                        ctxBg.lineWidth = 0.5;
+                        ctxBg.beginPath();
+                        ctxBg.moveTo(particles[i].x, particles[i].y);
+                        ctxBg.lineTo(particles[j].x, particles[j].y);
+                        ctxBg.stroke();
+                    }
+                }
+            }
+            requestAnimationFrame(animateCanvasBg);
+        }
+        window.addEventListener('resize', () => { resizeBg(); initParticles(); });
+        resizeBg();
+        initParticles();
+        animateCanvasBg();
+
+
+        // --- 2. SCROLL REVEAL ANIMATION ---
+        const observerOptions = { threshold: 0.15, rootMargin: "0px 0px -50px 0px" };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, observerOptions);
+        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+
+        // --- 3. KOMPLEXE ZAHNRAD ANIMATION (LINIEN & ÜBERKREUZUNGEN) ---
+        const canvasGears = document.getElementById('gears-canvas');
+        const ctxGears = canvasGears.getContext('2d');
+        let widthGears, heightGears;
+        let gears = [];
+        const BW_BLUE = '#0E345E';
+        const BW_RED = '#8A151B';
+
+        function resizeGears() {
+            const container = canvasGears.parentElement;
+            widthGears = canvasGears.width = container.clientWidth;
+            heightGears = canvasGears.height = container.clientHeight;
+            initGears(); 
+        }
+
+        class Gear {
+            constructor(x, y, radius, teeth, color, speed, startAngle = 0) {
+                this.x = x; this.y = y; this.radius = radius; this.teeth = teeth;
+                this.color = color; this.speed = speed; this.angle = startAngle;
+                this.toothHeight = this.radius * 0.2;
+                this.innerRadius = this.radius - this.toothHeight;
+            }
+            update() { this.angle += this.speed; }
+            draw() {
+                ctxGears.save(); ctxGears.translate(this.x, this.y); ctxGears.rotate(this.angle);
+                ctxGears.fillStyle = this.color;
+                ctxGears.beginPath();
+                const step = (Math.PI * 2) / (this.teeth * 2);
+                for (let i = 0; i < this.teeth * 2; i++) {
+                    const r = (i % 2 === 0) ? this.radius : this.innerRadius;
+                    const a = i * step;
+                    if (i === 0) ctxGears.moveTo(r * Math.cos(a), r * Math.sin(a));
+                    else ctxGears.lineTo(r * Math.cos(a), r * Math.sin(a));
+                }
+                ctxGears.closePath(); ctxGears.fill();
+                // Mittelloch
+                ctxGears.globalCompositeOperation = 'destination-out';
+                ctxGears.beginPath(); ctxGears.arc(0, 0, this.radius * 0.3, 0, Math.PI * 2); ctxGears.fill();
+                ctxGears.globalCompositeOperation = 'source-over';
+                ctxGears.restore();
+            }
+        }
+
+        function dist(x1, y1, x2, y2) {
+            return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
+        }
+
+        // Hilfsfunktion: Abstand Punkt zu Linie
+        function distToSegment(px, py, x1, y1, x2, y2) {
+            const l2 = (x2 - x1) ** 2 + (y2 - y1) ** 2;
+            if (l2 === 0) return dist(px, py, x1, y1);
+            let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2;
+            t = Math.max(0, Math.min(1, t));
+            return dist(px, py, x1 + t * (x2 - x1), y1 + t * (y2 - y1));
+        }
+
+        function initGears() {
+            gears = [];
+            // Start Zahnrad in der Mitte
+            gears.push(new Gear(widthGears/2, heightGears/2, 60, 10, BW_BLUE, 0.005));
+
+            let attempts = 0;
+            // Viel mehr Zahnräder (50)
+            while (gears.length < 50 && attempts < 5000) { 
+                attempts++;
+                const targetGear = gears[Math.floor(Math.random() * gears.length)];
+                
+                const newRadius = Math.random() * 25 + 15; 
+                const newTeeth = Math.max(5, Math.floor(newRadius / 5));
+                const color = gears.length % 2 === 0 ? BW_BLUE : BW_RED;
+                
+                const angle = Math.random() * Math.PI * 2;
+                const idealDist = targetGear.radius + newRadius - 5; 
+                const newX = targetGear.x + Math.cos(angle) * idealDist;
+                const newY = targetGear.y + Math.sin(angle) * idealDist;
+
+                // --- LOGIK FÜR LINIEN / KREUZUNGEN ---
+                // Wir definieren 3 Pfade, auf denen die Zahnräder wachsen sollen
+                // Pfad 1: Oben Links nach Unten Rechts (Diagonale)
+                const d1 = distToSegment(newX, newY, 0, 0, widthGears, heightGears);
+                // Pfad 2: Unten Links nach Oben Rechts (Diagonale)
+                const d2 = distToSegment(newX, newY, 0, heightGears, widthGears, 0);
+                // Pfad 3: Horizontale Linie durch die Mitte
+                const d3 = distToSegment(newX, newY, 0, heightGears/2, widthGears, heightGears/2);
+
+                // Wenn das Zahnrad zu weit weg von allen Linien ist, überspringen
+                // Erlaubt eine "Dicke" der Linien von 100px
+                if (d1 > 100 && d2 > 100 && d3 > 100) continue;
+
+                let overlaps = false;
+                for(const g of gears) {
+                    if(dist(newX, newY, g.x, g.y) < (newRadius + g.radius - 6)) {
+                        overlaps = true; break;
+                    }
+                }
+
+                if (!overlaps) {
+                    const newSpeed = -targetGear.speed * (targetGear.radius / newRadius);
+                    gears.push(new Gear(newX, newY, newRadius, newTeeth, color, newSpeed));
+                }
+            }
+        }
+
+        function animateGears() {
+            ctxGears.clearRect(0, 0, widthGears, heightGears);
+            gears.forEach(gear => { gear.update(); gear.draw(); });
+            requestAnimationFrame(animateGears);
+        }
+
+        window.addEventListener('resize', resizeGears);
+        setTimeout(() => { resizeGears(); animateGears(); }, 100);
+
+    </script>
+</body>
+</html>
